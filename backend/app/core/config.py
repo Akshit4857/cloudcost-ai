@@ -39,8 +39,31 @@ class Settings(BaseSettings):
     )
 
     @property
+    def normalized_database_url(self) -> str:
+        """Ensures modern SQLAlchemy 2.0 dialect compatibility (converts legacy postgres:// to postgresql://)."""
+        url = self.DATABASE_URL.strip()
+        if url.startswith("postgres://"):
+            return "postgresql://" + url[len("postgres://"):]
+        return url
+
+    @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        """Returns cleaned CORS origins with whitespace and trailing slashes stripped."""
+        origins: List[str] = []
+        for origin in self.CORS_ORIGINS.split(","):
+            clean = origin.strip().rstrip("/")
+            if clean:
+                origins.append(clean)
+        return origins
+
+    @property
+    def cors_allow_credentials(self) -> bool:
+        """Enforces that allow_credentials is only True when origins are explicitly specified.
+
+        According to the W3C CORS & Fetch security specifications, wildcard '*' origins
+        MUST NEVER be coupled with credentials.
+        """
+        return "*" not in self.cors_origins_list
 
     @property
     def is_llm_configured(self) -> bool:

@@ -32,19 +32,20 @@ async def parse_and_validate_billing_csv(
             detail=f"Invalid file extension. Expected a .csv file, got '{filename}'.",
         )
 
-    # 2. In-memory read with size limit check
-    contents = await file.read()
-    if not contents or len(contents.strip()) == 0:
+    # 2. In-memory read with bounded chunk size check to prevent OOM
+    chunk = await file.read(MAX_FILE_SIZE_BYTES + 1)
+    if not chunk or len(chunk.strip()) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded CSV file is empty.",
         )
 
-    if len(contents) > MAX_FILE_SIZE_BYTES:
+    if len(chunk) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="File size exceeds the 10 MB limit for in-memory processing.",
         )
+    contents = chunk
 
     # 3. Decode UTF-8 safely
     try:
@@ -133,10 +134,20 @@ async def parse_and_validate_billing_csv(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Row {line_num}: 'service' field cannot be empty.",
             )
+        if len(raw_service) > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Row {line_num}: 'service' field exceeds 100 character maximum.",
+            )
         if not raw_resource:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Row {line_num}: 'resource' field cannot be empty.",
+            )
+        if len(raw_resource) > 255:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Row {line_num}: 'resource' field exceeds 255 character maximum.",
             )
         if not raw_cost:
             raise HTTPException(
@@ -147,6 +158,11 @@ async def parse_and_validate_billing_csv(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Row {line_num}: 'currency' field cannot be empty.",
+            )
+        if len(raw_currency) > 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Row {line_num}: 'currency' code exceeds 10 character maximum.",
             )
 
         # Validate Date format (ISO YYYY-MM-DD)

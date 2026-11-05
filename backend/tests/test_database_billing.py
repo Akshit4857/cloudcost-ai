@@ -203,3 +203,65 @@ def test_anomaly_detection_endpoint():
     assert spike["date"] == "2026-10-05"
     assert spike["actual_cost"] == 180.0
     assert spike["percentage_difference"] > 100.0
+
+
+def test_cors_credentials_safety_with_wildcard():
+    """Verify that wildcard origin '*' never enables credentials reflection (W3C CORS security requirement)."""
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from starlette.testclient import TestClient
+    from app.core.config import Settings
+
+    custom_settings = Settings(CORS_ORIGINS="*")
+    assert custom_settings.cors_allow_credentials is False
+
+    test_app = FastAPI()
+    test_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=custom_settings.cors_origins_list,
+        allow_credentials=custom_settings.cors_allow_credentials,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @test_app.get("/ping")
+    def ping():
+        return {"status": "ok"}
+
+    c = TestClient(test_app)
+    res = c.get("/ping", headers={"Origin": "https://malicious-site.example.com"})
+    assert res.status_code == 200
+    # Must NOT reflect credentials to arbitrary cross-origins
+    assert res.headers.get("access-control-allow-credentials") is None
+    assert res.headers.get("access-control-allow-origin") == "*"
+
+
+def test_cors_explicit_origin_allows_credentials():
+    """Verify that explicit origin list securely enables credential sharing."""
+    from app.core.config import Settings
+
+    custom_settings = Settings(CORS_ORIGINS="http://localhost:3000, https://cloudcost-ai.onrender.com/")
+    assert custom_settings.cors_allow_credentials is True
+    # Verify trailing slashes and spaces were sanitized
+    assert custom_settings.cors_origins_list == ["http://localhost:3000", "https://cloudcost-ai.onrender.com"]
+
+
+def test_normalized_database_url_converts_postgres_scheme():
+    """Verify legacy postgres:// scheme from cloud hosts is normalized to postgresql:// for SQLAlchemy 2.0."""
+    from app.core.config import Settings
+
+    supabase_url = "postgres://user:pass@db.example.supabase.co:5432/postgres"
+    s = Settings(DATABASE_URL=supabase_url)
+    assert s.normalized_database_url == "postgresql://user:pass@db.example.supabase.co:5432/postgres"
+
+
+def test_billing_csv_field_length_validation():
+    """Verify that fields exceeding database schema constraints return HTTP 400 with actionable messages."""
+    headers = get_authenticated_client("field_length_user@example.com")
+    oversized_service = "A" * 105
+    csv_content = f"date,service,resource,cost,currency\n2026-11-01,{oversized_service},res-1,10.0,USD\n"
+    files = {"file": ("long_service.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")}
+
+    res = client.post("/api/billing/upload", files=files, headers=headers)
+    assert res.status_code == 400
+    assert "exceeds 100 character maximum" in res.json()["detail"]

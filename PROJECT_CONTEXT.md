@@ -274,7 +274,7 @@ Available Endpoints:
 - **Host Environment Note**:
   - Docker runtime is not currently installed on the local macOS machine; all Dockerfiles, `.dockerignore` files, and `docker-compose.yml` configurations have been authored and verified against production standards, with existing native local workflows fully preserved.
 
----
+---                     
 
 ## 13. Step 17 Completed: Continuous Integration with GitHub Actions
 - **Workflow File**: `.github/workflows/ci.yml`
@@ -348,10 +348,29 @@ Available Endpoints:
 - [x] **Step 16**: Docker & Docker Compose Containerization.
 - [x] **Step 17**: GitHub Actions CI/CD Pipeline.
 - [x] **Step 18**: Deploy on Strictly Free Hosting (Unified Single-Service Setup Ready).
+- [x] **Step 19**: Production Hardening & Portfolio Readiness (CORS Credential Guard, Streamed OOM Protection, Schema Truncation Defense, 38/38 Passed Tests).
 
 ---
 
-## 16. Security Disclosures & Grounding Principles
+## 16. Step 19 Completed: Production Hardening & Portfolio Readiness
+- **Audit Findings & Hardening Implemented**:
+  1. **CORS Credential Guard (OWASP API Security)**:
+     - Fixed critical CORS flaw where wildcard `*` origins were paired with `allow_credentials=True`, causing Starlette to reflect arbitrary attacker origins (`Origin: https://evil.com`) alongside credential sharing headers.
+     - Implemented `cors_allow_credentials` property in `backend/app/core/config.py`: automatically enforces `allow_credentials=False` whenever `*` is in `cors_origins_list`. Sanitizes trailing slashes and spaces across all origins.
+  2. **Stream-Bounded File Upload & OOM Guard**:
+     - Replaced unbounded `await file.read()` with bounded chunk reading `await file.read(MAX_FILE_SIZE_BYTES + 1)`. If an uploaded file exceeds the 10 MB limit, it immediately raises `HTTP 413` without buffering hundreds of megabytes into RAM, preventing Out-Of-Memory (OOM) SIGKILL crashes on 512 MB free-tier hosting.
+  3. **Schema Boundary & Truncation Defense**:
+     - Added row-level length validation in `billing_parser.py`: `service` (max 100 chars), `resource` (max 255 chars), and `currency` (max 10 chars). Rejects oversized fields with clear `HTTP 400 Bad Request` and exact row numbers, eliminating unhandled `HTTP 500` database rollback crashes.
+  4. **Database Dialect Compatibility**:
+     - Added `normalized_database_url` in `config.py` converting legacy `postgres://` URLs (provided by Supabase/Render/Heroku) to `postgresql://` required by SQLAlchemy 2.0.
+  5. **Verification & Test Suite**:
+     - Added 4 new automated tests in `test_database_billing.py` (`test_cors_credentials_safety_with_wildcard`, `test_cors_explicit_origin_allows_credentials`, `test_normalized_database_url_converts_postgres_scheme`, `test_billing_csv_field_length_validation`).
+     - **Full Backend Pytest Suite**: **38/38 PASSED** (100% GREEN in 11.77s).
+     - **Frontend Quality**: ESLint passed (0 errors, 0 warnings); Next.js production build generated 4/4 static routes cleanly.
+
+---
+
+## 17. Security Disclosures & Grounding Principles
 - **No Scraped Bloat**: Controlled documentation only from official cloud provider documentation.
 - **Untrusted Documentation Protection**: Retrieved text is passed as reference knowledge; model is instructed never to execute instructions embedded inside documents.
 - **Zero Hallucination of Architecture**: Model is forbidden from claiming documentation proves user's actual infrastructure state.

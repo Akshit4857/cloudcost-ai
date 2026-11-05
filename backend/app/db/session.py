@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # SQLAlchemy Engine with connection pool pre-ping to detect dropped connections
 engine = create_engine(
-    settings.DATABASE_URL,
+    settings.normalized_database_url,
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,

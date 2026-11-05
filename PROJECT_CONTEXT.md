@@ -324,12 +324,15 @@ Available Endpoints:
   - `frontend/next.config.ts`: Configured with `output: "export"`.
   - `frontend/src/lib/api.ts`: Auto-resolving relative URLs (`/api/...`) and adaptive WebSockets (`ws:` / `wss:` via `window.location.host`).
   - `backend/app/main.py`: Static frontend mounting at `/` with automated fallback.
-- **Live Local Verification**:
+- **Live Remote & Local Verification**:
+  - **Live GitHub Repository**: [https://github.com/Akshit4857/cloudcost-ai](https://github.com/Akshit4857/cloudcost-ai)
+  - **GitHub Actions CI (Run 42065906884)**: **ALL 3 JOBS PASSED** (Green ✓)
+    - `✓ Docker & Compose Syntax Validation` (58s)
+    - `✓ Frontend Lint & Build` (Next.js 16 production build) (1m1s)
+    - `✓ Backend Pytest & Integration` (All 34 tests passing with real PostgreSQL pgvector & Redis services) (1m8s)
   - `curl http://127.0.0.1:8000/` returns compiled Next.js Dashboard HTML.
   - `curl http://127.0.0.1:8000/api/health` returns healthy database status.
-  - All 34 automated integration tests passed (11.25s).
-  - Frontend static export built with 0 errors.
-  - Full project verified ready for immediate deployment.
+  - Full project verified production-ready for immediate Render live deployment.
 
 ---
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { CheckCircle2, RefreshCw, AlertCircle } from "lucide-react";
 import { checkBackendHealth, API_BASE_URL } from "../../lib/api";
 import { BackendConnectionResult } from "../../types/api";
 
@@ -90,30 +91,28 @@ export default function BackendStatus({ variant = "card" }: BackendStatusProps) 
         {/* Status indicator and info */}
         <div className="flex items-start gap-3">
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 mt-0.5 ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
               result.state === "connected"
                 ? "bg-emerald-100 text-emerald-700"
                 : result.state === "checking"
-                ? "bg-slate-200 text-slate-600 animate-pulse"
+                ? "bg-slate-200 text-slate-600"
                 : "bg-rose-100 text-rose-700"
             }`}
           >
-            {result.state === "connected"
-              ? "✓"
-              : result.state === "checking"
-              ? "⟳"
-              : "!"}
+            {result.state === "connected" && <CheckCircle2 className="w-5 h-5" />}
+            {result.state === "checking" && <RefreshCw className="w-5 h-5 animate-spin" />}
+            {result.state === "unavailable" && <AlertCircle className="w-5 h-5" />}
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-slate-900">
-                {result.state === "connected" && "FastAPI Backend Connected"}
+              <h3 className="text-sm font-bold text-slate-900">
+                {result.state === "connected" && "FastAPI Backend & Database Live"}
                 {result.state === "checking" && "Checking Backend Connectivity..."}
                 {result.state === "unavailable" && "FastAPI Backend Unavailable"}
               </h3>
               <span
-                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-medium ${
+                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
                   result.state === "connected"
                     ? "bg-emerald-100 text-emerald-800"
                     : result.state === "checking"
@@ -121,64 +120,42 @@ export default function BackendStatus({ variant = "card" }: BackendStatusProps) 
                     : "bg-rose-100 text-rose-800"
                 }`}
               >
-                {result.state === "connected" && "HTTP 200 OK"}
-                {result.state === "checking" && "Pinging"}
-                {result.state === "unavailable" && "Offline"}
+                {result.state.toUpperCase()}
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-600 mt-0.5">
               {result.state === "connected" && (
                 <>
-                  Successfully connected to{" "}
-                  <strong className="text-slate-800">
-                    {result.data?.service} (v{result.data?.version})
-                  </strong>{" "}
-                  at{" "}
-                  <code className="px-1.5 py-0.5 bg-white/80 rounded border border-slate-200 text-[11px]">
-                    {API_BASE_URL}
-                  </code>
-                  . Latency: <strong>{result.latencyMs}ms</strong>.
+                  Server: <code className="font-mono">{result.data?.service}</code> | Version:{" "}
+                  <code className="font-mono">v{result.data?.version}</code> | Latency:{" "}
+                  <strong>{result.latencyMs}ms</strong>
                 </>
               )}
-              {result.state === "checking" && (
-                <>
-                  Attempting HTTP GET request to{" "}
-                  <code className="px-1.5 py-0.5 bg-white/80 rounded border border-slate-200 text-[11px]">
-                    {API_BASE_URL}/api/health
-                  </code>
-                  ...
-                </>
-              )}
+              {result.state === "checking" && "Querying /api/health endpoint..."}
               {result.state === "unavailable" && (
-                <>
-                  Could not reach backend at{" "}
-                  <code className="px-1.5 py-0.5 bg-white/80 rounded border border-rose-200 text-[11px] text-rose-900">
-                    {API_BASE_URL}/api/health
-                  </code>
-                  . {result.error ? `Error: ${result.error}.` : ""}{" "}
-                  Run{" "}
-                  <code className="px-1.5 py-0.5 bg-white/80 rounded border border-slate-200 text-[11px] font-mono">
-                    uvicorn app.main:app --reload
-                  </code>{" "}
-                  inside <code className="font-mono text-[11px]">backend/</code>.
-                </>
+                <span className="text-rose-700 font-medium">
+                  {result.error || "Cannot reach API server."}
+                </span>
               )}
             </p>
           </div>
         </div>
 
         {/* Retry button */}
-        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-          <button
-            type="button"
-            onClick={checkConnection}
-            disabled={result.state === "checking"}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 transition shadow-2xs cursor-pointer"
-          >
-            {result.state === "checking" ? "Checking..." : "Re-check Connection"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={checkConnection}
+          disabled={result.state === "checking"}
+          className="self-start sm:self-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition shadow-2xs"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 text-slate-500 ${
+              result.state === "checking" ? "animate-spin" : ""
+            }`}
+          />
+          <span>Re-check Health</span>
+        </button>
       </div>
     </div>
   );

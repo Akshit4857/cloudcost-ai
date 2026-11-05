@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { RotateCcw, BarChart3 } from "lucide-react";
 import Sidebar from "../components/dashboard/Sidebar";
 import Header from "../components/dashboard/Header";
 import StatCard from "../components/dashboard/StatCard";
@@ -448,13 +449,15 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-300 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 transition-colors shadow-2xs cursor-pointer"
                 >
-                  <span>↺ Switch to Sample View</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Switch to Sample View</span>
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-800 text-xs font-semibold border border-blue-200">
-                  <span>📊 Sample View Active</span>
+                  <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Sample View Active</span>
                 </span>
               )}
             </div>

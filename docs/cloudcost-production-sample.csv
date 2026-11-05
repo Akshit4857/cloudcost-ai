@@ -1,0 +1,28 @@
+date,service,resource,cost,currency
+2026-11-01,Amazon EC2,i-0a8b1c2d3e4f-web-prod,45.20,USD
+2026-11-01,Amazon RDS,rds-aurora-postgres-cluster,62.50,USD
+2026-11-01,Amazon S3,production-assets-bucket,12.30,USD
+2026-11-01,Google BigQuery,analytics-reporting-engine,28.40,USD
+2026-11-01,Azure Virtual Machines,vm-batch-worker-linux,18.00,USD
+2026-11-02,Amazon EC2,i-0a8b1c2d3e4f-web-prod,46.10,USD
+2026-11-02,Amazon RDS,rds-aurora-postgres-cluster,63.00,USD
+2026-11-02,Amazon S3,production-assets-bucket,12.80,USD
+2026-11-02,Google BigQuery,analytics-reporting-engine,31.20,USD
+2026-11-02,Azure Virtual Machines,vm-batch-worker-linux,18.50,USD
+2026-11-03,Amazon EC2,i-0a8b1c2d3e4f-web-prod,44.80,USD
+2026-11-03,Amazon RDS,rds-aurora-postgres-cluster,62.10,USD
+2026-11-03,Amazon S3,production-assets-bucket,13.10,USD
+2026-11-03,Google BigQuery,analytics-reporting-engine,29.80,USD
+2026-11-03,Azure Virtual Machines,vm-batch-worker-linux,17.90,USD
+2026-11-04,Amazon EC2,i-0a8b1c2d3e4f-web-prod,47.00,USD
+2026-11-04,Amazon RDS,rds-aurora-postgres-cluster,64.20,USD
+2026-11-04,Amazon S3,production-assets-bucket,12.90,USD
+2026-11-04,Google BigQuery,analytics-reporting-engine,32.50,USD
+2026-11-04,Azure Virtual Machines,vm-batch-worker-linux,18.20,USD
+2026-11-05,Amazon EC2,i-0a8b1c2d3e4f-web-prod,45.50,USD
+2026-11-05,Amazon EC2,i-unplanned-ml-training-gpu,480.00,USD
+2026-11-05,Amazon RDS,rds-aurora-postgres-cluster,63.80,USD
+2026-11-05,Amazon S3,uncompressed-dataset-dumps,145.60,USD
+2026-11-05,Google BigQuery,unpartitioned-query-leak,210.00,USD
+2026-11-05,Azure Virtual Machines,vm-batch-worker-linux,19.10,USD
+

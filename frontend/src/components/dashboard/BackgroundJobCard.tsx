@@ -1,6 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
+import {
+  Zap,
+  Radio,
+  Activity,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Clock,
+  Loader2,
+  Cpu,
+} from "lucide-react";
 import { enqueueRagIngestJob, fetchJobStatus, getAuthToken, getWebSocketUrl } from "../../lib/api";
 import { JobStatusResponse } from "../../types/api";
 
@@ -63,81 +74,65 @@ export default function BackgroundJobCard() {
     }, 2000);
   }, [stopPolling]);
 
-  // WebSocket Lifecycle & Real-Time Connection
-  useEffect(() => {
-    if (!currentJobId || currentStatus === "completed" || currentStatus === "failed") {
-      stopPolling();
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      return;
+  // Connect to live WebSocket stream
+  const connectWebSocket = useCallback((jobId: string) => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     const token = getAuthToken();
-    if (!token) {
-      // Fallback to polling if token is unavailable in localStorage
-      startPollingFallback(currentJobId);
-      return;
-    }
+    const wsUrl = getWebSocketUrl(`/api/ws/jobs/${jobId}?token=${encodeURIComponent(token || "")}`);
 
-    const wsUrl = `${getWebSocketUrl(`/api/ws/jobs/${currentJobId}`)}?token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      setIsWsConnected(true);
-      setIsUsingPolling(false);
-      setError(null);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.job_id) {
-          setActiveJob((prev) => (prev ? { ...prev, ...data } : data));
-
-          // If job reached terminal state, close WebSocket cleanly
-          if (data.status === "completed" || data.status === "failed") {
-            ws.close();
-            wsRef.current = null;
-            setIsWsConnected(false);
-          }
+      const wsTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          ws.close();
+          startPollingFallback(jobId);
         }
-      } catch (err) {
-        console.error("Failed to parse WebSocket job message:", err);
-      }
-    };
+      }, 3500);
 
-    ws.onerror = () => {
-      // Graceful fallback to polling if WebSocket encounters an error
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      setIsWsConnected(false);
-      startPollingFallback(currentJobId);
-    };
+      ws.onopen = () => {
+        clearTimeout(wsTimeout);
+        setIsWsConnected(true);
+        setIsUsingPolling(false);
+      };
 
-    ws.onclose = (event) => {
-      wsRef.current = null;
-      setIsWsConnected(false);
-      // If closed abnormally before job completion, switch to polling fallback
-      if (event.code !== 1000 && (currentStatus === "queued" || currentStatus === "running")) {
-        startPollingFallback(currentJobId);
-      }
-    };
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          setActiveJob(payload);
 
-    return () => {
-      stopPolling();
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [currentJobId, currentStatus, startPollingFallback, stopPolling]);
+          if (payload.status === "completed" || payload.status === "failed") {
+            ws.close();
+          }
+        } catch {
+          // ignore malformed frame
+        }
+      };
 
-  const handleTriggerJob = async () => {
+      ws.onerror = () => {
+        clearTimeout(wsTimeout);
+        setIsWsConnected(false);
+        startPollingFallback(jobId);
+      };
+
+      ws.onclose = () => {
+        setIsWsConnected(false);
+        if (activeJob && activeJob.status !== "completed" && activeJob.status !== "failed") {
+          startPollingFallback(jobId);
+        }
+      };
+    } catch {
+      startPollingFallback(jobId);
+    }
+  }, [activeJob, startPollingFallback]);
+
+  // Enqueue job handler
+  const handleStartIngestJob = async () => {
     setIsSubmitting(true);
     setError(null);
     setPollCount(0);
@@ -151,246 +146,162 @@ export default function BackgroundJobCard() {
       setActiveJob({
         job_id: res.data.job_id,
         task_name: res.data.task_name,
-        status: "queued",
+        status: res.data.status,
         result: null,
         error: null,
-        created_at: res.data.created_at,
-        updated_at: res.data.created_at,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
+
+      connectWebSocket(res.data.job_id);
     } else {
       setError(res.error || "Failed to enqueue background job");
     }
   };
 
-  const handleDismiss = () => {
-    stopPolling();
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setActiveJob(null);
-    setError(null);
-    setPollCount(0);
-    setIsWsConnected(false);
-    setIsUsingPolling(false);
-  };
-
-  const isJobActive = activeJob?.status === "queued" || activeJob?.status === "running";
-
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header Bar */}
-      <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/50 via-white to-purple-50/20">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold">
-              <span>⚡</span>
-              <span>Step 15: Real-Time WebSockets & Task Queue</span>
-            </span>
-            <span className="text-xs text-slate-400">•</span>
-            <span className="text-xs text-slate-500 font-medium">
-              Broker: Redis 7.2 • Worker: Celery • Transport: WebSocket
-            </span>
-          </div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            Real-Time Asynchronous Job Streaming
-          </h2>
-          <p className="text-xs text-slate-600 max-w-2xl leading-normal">
-            Real-time, bi-directional event streaming over authenticated WebSockets powered by Redis Pub/Sub, delivering instant background job updates without polling latency.
-          </p>
-        </div>
-
-        {/* Action Button */}
+    <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleTriggerJob}
-            disabled={isSubmitting || isJobActive}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs transition shadow-xs cursor-pointer shrink-0"
-          >
-            {isSubmitting ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                <span>Enqueuing...</span>
-              </>
-            ) : isJobActive ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                <span>Live Streaming...</span>
-              </>
-            ) : (
-              <>
-                <span>▶ Run Async RAG Re-indexing</span>
-              </>
-            )}
-          </button>
+          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center font-bold text-sm shadow-2xs">
+            <Zap className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900">
+                Background Job Processing & Real-time WebSockets
+              </h2>
+              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                Redis Pub/Sub
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Decoupled Celery workers with live event push over WebSockets and polling fallback
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleStartIngestJob}
+          disabled={isSubmitting || (activeJob !== null && activeJob.status === "running")}
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs transition-all ${
+            isSubmitting || (activeJob !== null && activeJob.status === "running")
+              ? "bg-slate-300 cursor-not-allowed"
+              : "bg-purple-600 hover:bg-purple-700 active:scale-98"
+          }`}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Enqueuing...</span>
+            </>
+          ) : (
+            <>
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Enqueue RAG Ingest Job</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Body Content */}
-      <div className="p-5 sm:p-6 space-y-4">
-        {/* Error Alert */}
-        {error && (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-3">
-            <span className="text-base">⚠️</span>
-            <div className="flex-1 space-y-1">
-              <p className="font-semibold">Background Job Error</p>
-              <p className="text-rose-700">{error}</p>
-              {error.includes("503") || error.includes("Queue service unavailable") ? (
-                <p className="text-[11px] text-rose-600 mt-1">
-                  Tip: Ensure Redis is running locally (`redis-server` or `brew services start redis`) and the backend can reach `redis://localhost:6379/0`.
-                </p>
-              ) : null}
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-rose-500 hover:text-rose-700 text-xs font-medium cursor-pointer"
-            >
-              ✕
-            </button>
+      {/* Error state */}
+      {error && (
+        <div className="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+          <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      {/* Live connection mode badge */}
+      {currentJobId && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-600">Mode:</span>
+            {connectionMode === "websocket" && (
+              <span className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold text-[11px]">
+                <Radio className="w-3 h-3 text-emerald-600 animate-pulse" />
+                <span>Real-time WebSocket</span>
+              </span>
+            )}
+            {connectionMode === "polling" && (
+              <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-semibold text-[11px]">
+                <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" />
+                <span>Polling Fallback (Poll #{pollCount})</span>
+              </span>
+            )}
+            {connectionMode === "connecting" && (
+              <span className="inline-flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 font-semibold text-[11px]">
+                <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+                <span>Connecting...</span>
+              </span>
+            )}
+            {connectionMode === "closed" && (
+              <span className="inline-flex items-center gap-1.5 text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 font-semibold text-[11px]">
+                <Clock className="w-3 h-3 text-slate-500" />
+                <span>Job Completed</span>
+              </span>
+            )}
           </div>
-        )}
 
-        {/* Active / Last Job Display */}
-        {activeJob ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4">
-            {/* Status Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-700">Job:</span>
-                <code className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-800">
-                  {activeJob.task_name}
-                </code>
-                <span className="text-xs text-slate-400">({activeJob.job_id.substring(0, 8)}...)</span>
-              </div>
+          <div className="text-[11px] font-mono text-slate-500">
+            Job ID: <span className="font-bold text-slate-700">{currentJobId.slice(0, 8)}...</span>
+          </div>
+        </div>
+      )}
 
-              <div className="flex items-center gap-3">
-                {/* Status Badge */}
-                {activeJob.status === "queued" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                    <span>Queued in Redis</span>
-                  </span>
-                )}
-                {activeJob.status === "running" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span>Worker Processing</span>
-                  </span>
-                )}
-                {activeJob.status === "completed" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span>✓</span>
-                    <span>Completed</span>
-                  </span>
-                )}
-                {activeJob.status === "failed" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                    <span>✕</span>
-                    <span>Failed</span>
-                  </span>
-                )}
-
-                {/* Connection Transport Indicator */}
-                {isJobActive && (
-                  <>
-                    {connectionMode === "websocket" && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                        <span>WS Live</span>
-                      </span>
-                    )}
-                    {connectionMode === "polling" && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        <span>↺ Polling ({pollCount * 2}s)</span>
-                      </span>
-                    )}
-                    {connectionMode === "connecting" && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                        <span>Connecting...</span>
-                      </span>
-                    )}
-                  </>
-                )}
-
-                {/* Dismiss button when terminal */}
-                {!isJobActive && (
-                  <button
-                    type="button"
-                    onClick={handleDismiss}
-                    className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+      {/* Active Job State Card */}
+      {activeJob ? (
+        <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {activeJob.status === "completed" && (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              )}
+              {activeJob.status === "failed" && (
+                <XCircle className="w-5 h-5 text-rose-600" />
+              )}
+              {(activeJob.status === "running" || activeJob.status === "queued") && (
+                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+              )}
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 capitalize">
+                  {activeJob.task_name.replace(/_/g, " ")}
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Status:{" "}
+                  <span
+                    className={`font-semibold uppercase tracking-wider ${
+                      activeJob.status === "completed"
+                        ? "text-emerald-700"
+                        : activeJob.status === "failed"
+                        ? "text-rose-700"
+                        : "text-purple-700"
+                    }`}
                   >
-                    Dismiss
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Details Breakdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="bg-white p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block mb-0.5">Created At</span>
-                <span className="font-mono text-slate-700">
-                  {new Date(activeJob.created_at).toLocaleTimeString()}
-                </span>
-              </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block mb-0.5">Last Updated</span>
-                <span className="font-mono text-slate-700">
-                  {new Date(activeJob.updated_at).toLocaleTimeString()}
-                </span>
-              </div>
-              <div className="bg-white p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block mb-0.5">Transport Mode</span>
-                <span className="font-medium text-slate-800">
-                  {connectionMode === "websocket"
-                    ? "⚡ Real-time WebSocket (Redis Pub/Sub)"
-                    : connectionMode === "polling"
-                    ? "↺ HTTP Polling Fallback"
-                    : activeJob.status === "completed"
-                    ? "Delivered & Synced"
-                    : "Connecting..."}
-                </span>
-              </div>
-            </div>
-
-            {/* Completed Result Payload */}
-            {activeJob.status === "completed" && activeJob.result && (
-              <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-100 text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-emerald-900">Worker Execution Metrics:</span>
-                  <span className="font-mono text-[11px] text-emerald-700">
-                    {activeJob.result.documents_processed ?? 0} docs • {activeJob.result.chunks_created ?? 0} chunks
+                    {activeJob.status}
                   </span>
-                </div>
-                <p className="text-emerald-800 text-[11px]">
-                  RAG vector knowledge base was synchronized in the background without blocking the web application. Updates streamed in real time via WebSockets.
                 </p>
+              </div>
+            </div>
+
+            {activeJob.result && (
+              <div className="text-right text-xs">
+                <span className="text-slate-500">Docs processed:</span>{" "}
+                <strong className="text-slate-900">
+                  {activeJob.result.documents_processed || 0}
+                </strong>
               </div>
             )}
           </div>
-        ) : (
-          /* Empty State Explainer */
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/40">
-            <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-slate-800">No background job currently running</p>
-              <p className="text-xs text-slate-500">
-                Click <span className="font-medium text-slate-700">&quot;Run Async RAG Re-indexing&quot;</span> to trigger a background task. The frontend establishes an authenticated WebSocket to <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">/api/ws/jobs/&#123;id&#125;</code> for instant updates streamed from Redis Pub/Sub.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 text-xs text-slate-400">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Worker Ready</span>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="mt-4 py-6 text-center text-xs text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+          <Activity className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
+          No background jobs active. Click above to enqueue an asynchronous worker task.
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,17 @@
+date,service,resource,cost,currency
+2026-10-01,EC2,i-prod-web-01,20.00,USD
+2026-10-01,RDS,db-primary,15.00,USD
+2026-10-01,S3,assets-bucket,5.00,USD
+2026-10-02,EC2,i-prod-web-01,22.00,USD
+2026-10-02,RDS,db-primary,15.50,USD
+2026-10-02,S3,assets-bucket,5.10,USD
+2026-10-03,EC2,i-prod-web-01,21.00,USD
+2026-10-03,RDS,db-primary,15.20,USD
+2026-10-03,S3,assets-bucket,5.00,USD
+2026-10-04,EC2,i-prod-web-01,23.00,USD
+2026-10-04,RDS,db-primary,16.00,USD
+2026-10-04,S3,assets-bucket,5.20,USD
+2026-10-05,EC2,i-unplanned-gpu-instance,185.00,USD
+2026-10-05,RDS,db-primary,15.50,USD
+2026-10-05,S3,assets-bucket,5.10,USD
+

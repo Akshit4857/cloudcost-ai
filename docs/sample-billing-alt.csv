@@ -1,0 +1,11 @@
+date,service,resource,cost,currency
+2026-11-01,CloudRun,svc-frontend-prod,8.25,USD
+2026-11-01,BigQuery,dataset-analytics-daily,14.50,USD
+2026-11-02,CloudRun,svc-frontend-prod,9.10,USD
+2026-11-02,BigQuery,dataset-analytics-daily,22.40,USD
+2026-11-02,CloudStorage,bucket-backups-europe,3.75,USD
+2026-11-03,CloudRun,svc-frontend-prod,11.20,USD
+2026-11-03,BigQuery,dataset-analytics-daily,18.90,USD
+2026-11-04,CloudRun,svc-frontend-prod,10.50,USD
+2026-11-04,CloudStorage,bucket-backups-europe,4.10,USD
+

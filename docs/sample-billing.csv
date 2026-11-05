@@ -1,0 +1,13 @@
+date,service,resource,cost,currency
+2026-10-01,EC2,i-0a1b2c3d4e5f,12.50,USD
+2026-10-01,S3,cloudcost-prod-logs,4.20,USD
+2026-10-01,RDS,cloudcost-db-primary,18.00,USD
+2026-10-02,EC2,i-0a1b2c3d4e5f,12.50,USD
+2026-10-02,EC2,i-0987654321fe,24.00,USD
+2026-10-02,S3,cloudcost-prod-logs,4.35,USD
+2026-10-02,RDS,cloudcost-db-primary,18.00,USD
+2026-10-03,EC2,i-0a1b2c3d4e5f,12.50,USD
+2026-10-03,S3,cloudcost-prod-logs,4.50,USD
+2026-10-03,Networking,nat-0123456789abcdef0,8.75,USD
+2026-10-03,RDS,cloudcost-db-primary,18.00,USD
+

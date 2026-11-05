@@ -1,0 +1,43 @@
+# ==============================================================================
+# CloudCost AI - Unified Single-Service Render Blueprint (100% Free Plan)
+# Deploys Unified Full-Stack (Next.js Static Frontend + FastAPI Backend)
+# on a single free Render Web Service without needing Vercel or paid workers.
+# ==============================================================================
+
+services:
+  - type: web
+    name: cloudcost-ai
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt && mkdir -p static_frontend && cp -r ../frontend/out/* static_frontend/"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: "*"
+      # Configure free Supabase or Neon PostgreSQL connection string in Render dashboard
+      - key: DATABASE_URL
+        sync: false
+      # Configure free Upstash Redis connection string in Render dashboard
+      - key: REDIS_URL
+        sync: false
+      # Automatically generates a cryptographically random JWT signing key
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      # Empty/Unset uses same-origin relative URLs (/api/...)
+      - key: NEXT_PUBLIC_API_URL
+        value: ""
+      # Optional: OpenAI key for AI billing insights and embeddings
+      - key: OPENAI_API_KEY
+        sync: false

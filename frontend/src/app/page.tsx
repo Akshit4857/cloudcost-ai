@@ -75,7 +75,8 @@ export default function DashboardPage() {
   const loadAnomalies = useCallback(async (batchId?: string) => {
     setIsAnomaliesLoading(true);
     setAnomaliesError(null);
-    const res = await fetchBillingAnomalies(batchId);
+    const cleanBatchId = typeof batchId === "string" ? batchId : undefined;
+    const res = await fetchBillingAnomalies(cleanBatchId);
     setIsAnomaliesLoading(false);
     if (res.success && res.data) {
       setAnomalies(res.data.anomalies);
@@ -551,7 +552,7 @@ export default function DashboardPage() {
               isLoading={isAnomaliesLoading}
               error={anomaliesError}
               message={anomaliesMessage}
-              onRefresh={loadAnomalies}
+              onRefresh={() => loadAnomalies(billingSummary?.batch_id)}
               hasUploadedData={Boolean(billingSummary)}
             />
           </section>

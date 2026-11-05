@@ -24,14 +24,41 @@ import {
 
 /**
  * Base URL for the FastAPI backend service.
- * Defaults to http://localhost:8000 if NEXT_PUBLIC_API_URL is unset.
+ * Defaults to current window.location.origin in browser (or http://localhost:8000 in SSR/node).
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL !== undefined
+  process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim() !== ""
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")
     : typeof window !== "undefined"
     ? window.location.origin
     : "http://localhost:8000";
+
+/**
+ * Builds a safe absolute API URL with optional query parameters.
+ * Guarantees never throwing 'TypeError: Invalid URL' across SSR and client-side execution.
+ */
+export function buildApiUrl(
+  path: string,
+  params?: Record<string, string | undefined>
+): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const base =
+    API_BASE_URL && (API_BASE_URL.startsWith("http://") || API_BASE_URL.startsWith("https://"))
+      ? API_BASE_URL
+      : typeof window !== "undefined"
+      ? window.location.origin
+      : "http://localhost:8000";
+
+  const url = new URL(cleanPath, base);
+  if (params) {
+    for (const [key, val] of Object.entries(params)) {
+      if (val !== undefined && val !== null && val !== "") {
+        url.searchParams.set(key, val);
+      }
+    }
+  }
+  return url.toString();
+}
 
 /**
  * Converts HTTP(S) API base URL to standard WS(S) WebSocket URL.
@@ -401,13 +428,9 @@ export async function uploadBillingCSV(file: File): Promise<BillingUploadResult>
 export async function fetchPersistedBillingSummary(
   uploadId?: string
 ): Promise<BillingUploadResult> {
-  const url = new URL(`${API_BASE_URL}/api/billing/summary`);
-  if (uploadId) {
-    url.searchParams.set("upload_id", uploadId);
-  }
-
   try {
-    const response = await fetch(url.toString(), {
+    const endpoint = buildApiUrl("/api/billing/summary", { upload_id: uploadId });
+    const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -463,13 +486,9 @@ export async function fetchPersistedBillingSummary(
 export async function fetchBillingAnomalies(
   uploadId?: string
 ): Promise<AnomalyFetchResult> {
-  const url = new URL(`${API_BASE_URL}/api/billing/anomalies`);
-  if (uploadId) {
-    url.searchParams.set("upload_id", uploadId);
-  }
-
   try {
-    const response = await fetch(url.toString(), {
+    const endpoint = buildApiUrl("/api/billing/anomalies", { upload_id: uploadId });
+    const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         Accept: "application/json",

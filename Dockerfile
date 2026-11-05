@@ -24,6 +24,7 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    CELERY_TASK_ALWAYS_EAGER=true \
     PORT=8000
 
 # Install curl for diagnostics and libpq runtime dependencies

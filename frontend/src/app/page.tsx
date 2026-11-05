@@ -75,54 +75,72 @@ export default function DashboardPage() {
   const loadAnomalies = useCallback(async (batchId?: string) => {
     setIsAnomaliesLoading(true);
     setAnomaliesError(null);
-    const cleanBatchId = typeof batchId === "string" ? batchId : undefined;
-    const res = await fetchBillingAnomalies(cleanBatchId);
-    setIsAnomaliesLoading(false);
-    if (res.success && res.data) {
-      setAnomalies(res.data.anomalies);
-      setAnomaliesMessage(res.data.message);
-    } else {
-      setAnomaliesError(res.error || "Failed to load cost anomalies.");
+    try {
+      const cleanBatchId = typeof batchId === "string" ? batchId : undefined;
+      const res = await fetchBillingAnomalies(cleanBatchId);
+      if (res.success && res.data) {
+        setAnomalies(res.data.anomalies);
+        setAnomaliesMessage(res.data.message);
+      } else {
+        setAnomaliesError(res.error || "Failed to load cost anomalies.");
+      }
+    } catch (err: unknown) {
+      setAnomaliesError(err instanceof Error ? err.message : "Failed to load cost anomalies.");
+    } finally {
+      setIsAnomaliesLoading(false);
     }
   }, []);
 
   const loadUploadHistory = useCallback(async () => {
     setIsHistoryLoading(true);
     setHistoryError(null);
-    const res = await fetchUploadHistory();
-    setIsHistoryLoading(false);
-    if (res.success && res.data) {
-      setUploadHistory(res.data);
-    } else {
-      setHistoryError(res.error || "Failed to load upload history.");
+    try {
+      const res = await fetchUploadHistory();
+      if (res.success && res.data) {
+        setUploadHistory(res.data);
+      } else {
+        setHistoryError(res.error || "Failed to load upload history.");
+      }
+    } catch (err: unknown) {
+      setHistoryError(err instanceof Error ? err.message : "Failed to load upload history.");
+    } finally {
+      setIsHistoryLoading(false);
     }
   }, []);
 
   const hydrateUserData = useCallback(async () => {
-    // 1. Fetch user's upload history
-    const historyRes = await fetchUploadHistory();
-    if (historyRes.success && historyRes.data) {
-      setUploadHistory(historyRes.data);
-    } else {
-      setUploadHistory([]);
-    }
-
-    // 2. Fetch user's latest billing summary
-    const summaryRes = await fetchPersistedBillingSummary();
-    if (summaryRes.success && summaryRes.data) {
-      setBillingSummary(summaryRes.data);
-      // 3. Fetch anomalies for user's latest batch
-      const anomaliesRes = await fetchBillingAnomalies(summaryRes.data.batch_id);
-      if (anomaliesRes.success && anomaliesRes.data) {
-        setAnomalies(anomaliesRes.data.anomalies);
-        setAnomaliesMessage(anomaliesRes.data.message);
-      } else if (anomaliesRes.error) {
-        setAnomaliesError(anomaliesRes.error);
+    setIsAnomaliesLoading(true);
+    setAnomaliesError(null);
+    try {
+      // 1. Fetch user's upload history
+      const historyRes = await fetchUploadHistory();
+      if (historyRes.success && historyRes.data) {
+        setUploadHistory(historyRes.data);
+      } else {
+        setUploadHistory([]);
       }
-    } else {
-      setBillingSummary(null);
-      setAnomalies([]);
-      setAnomaliesMessage("");
+
+      // 2. Fetch user's latest billing summary
+      const summaryRes = await fetchPersistedBillingSummary();
+      if (summaryRes.success && summaryRes.data) {
+        setBillingSummary(summaryRes.data);
+        // 3. Fetch anomalies for user's latest batch
+        const anomaliesRes = await fetchBillingAnomalies(summaryRes.data.batch_id);
+        if (anomaliesRes.success && anomaliesRes.data) {
+          setAnomalies(anomaliesRes.data.anomalies);
+          setAnomaliesMessage(anomaliesRes.data.message);
+        } else if (anomaliesRes.error) {
+          setAnomaliesError(anomaliesRes.error);
+        }
+      } else {
+        setBillingSummary(null);
+        setAnomalies([]);
+        setAnomaliesMessage("");
+      }
+    } catch (err: unknown) {
+      setAnomaliesError(err instanceof Error ? err.message : "Failed to initialize cost data.");
+    } finally {
+      setIsAnomaliesLoading(false);
     }
   }, []);
 
@@ -183,17 +201,22 @@ export default function DashboardPage() {
 
     setIsAnomaliesLoading(true);
     setAnomaliesError(null);
-    const summaryRes = await fetchUploadDetails(uploadId);
-    if (summaryRes.success && summaryRes.data) {
-      setBillingSummary(summaryRes.data);
-    }
-    const anomaliesRes = await fetchBillingAnomalies(uploadId);
-    setIsAnomaliesLoading(false);
-    if (anomaliesRes.success && anomaliesRes.data) {
-      setAnomalies(anomaliesRes.data.anomalies);
-      setAnomaliesMessage(anomaliesRes.data.message);
-    } else {
-      setAnomaliesError(anomaliesRes.error || "Failed to load anomalies for dataset.");
+    try {
+      const summaryRes = await fetchUploadDetails(uploadId);
+      if (summaryRes.success && summaryRes.data) {
+        setBillingSummary(summaryRes.data);
+      }
+      const anomaliesRes = await fetchBillingAnomalies(uploadId);
+      if (anomaliesRes.success && anomaliesRes.data) {
+        setAnomalies(anomaliesRes.data.anomalies);
+        setAnomaliesMessage(anomaliesRes.data.message);
+      } else {
+        setAnomaliesError(anomaliesRes.error || "Failed to load anomalies for dataset.");
+      }
+    } catch (err: unknown) {
+      setAnomaliesError(err instanceof Error ? err.message : "Failed to load anomalies for dataset.");
+    } finally {
+      setIsAnomaliesLoading(false);
     }
   };
 

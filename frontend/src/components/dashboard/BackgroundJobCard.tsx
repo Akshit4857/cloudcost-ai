@@ -208,9 +208,16 @@ export default function BackgroundJobCard() {
 
       {/* Error state */}
       {error && (
-        <div className="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
-          <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-          <p>{error}</p>
+        <div className="mt-4 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1.5">
+          <div className="flex items-start gap-2">
+            <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <p className="font-semibold">{error}</p>
+          </div>
+          {error.toLowerCase().includes("redis") && (
+            <div className="ml-6 text-[11px] text-rose-700 bg-white/70 p-2.5 rounded-lg border border-rose-100 leading-relaxed">
+              💡 <strong>Render Free Hosting Notice:</strong> Standalone Redis instances are not included on Render&apos;s free plan. To enable in-process background execution, set <code className="bg-rose-100 px-1 py-0.5 rounded font-mono font-semibold">CELERY_TASK_ALWAYS_EAGER=true</code> in your Render Dashboard Environment Variables, or provide a free Upstash Redis URL in <code className="bg-rose-100 px-1 py-0.5 rounded font-mono font-semibold">REDIS_URL</code>.
+            </div>
+          )}
         </div>
       )}
 

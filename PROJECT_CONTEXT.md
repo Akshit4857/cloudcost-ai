@@ -324,15 +324,21 @@ Available Endpoints:
   - `frontend/next.config.ts`: Configured with `output: "export"`.
   - `frontend/src/lib/api.ts`: Auto-resolving relative URLs (`/api/...`) and adaptive WebSockets (`ws:` / `wss:` via `window.location.host`).
   - `backend/app/main.py`: Static frontend mounting at `/` with automated fallback.
-- **Live Remote & Local Verification**:
+- **Live Remote & Production Verification**:
   - **Live GitHub Repository**: [https://github.com/Akshit4857/cloudcost-ai](https://github.com/Akshit4857/cloudcost-ai)
+  - **Live Production URL**: [https://cloudcost-ai.onrender.com](https://cloudcost-ai.onrender.com)
   - **GitHub Actions CI (Run 42065906884)**: **ALL 3 JOBS PASSED** (Green ✓)
     - `✓ Docker & Compose Syntax Validation` (58s)
     - `✓ Frontend Lint & Build` (Next.js 16 production build) (1m1s)
     - `✓ Backend Pytest & Integration` (All 34 tests passing with real PostgreSQL pgvector & Redis services) (1m8s)
-  - `curl http://127.0.0.1:8000/` returns compiled Next.js Dashboard HTML.
-  - `curl http://127.0.0.1:8000/api/health` returns healthy database status.
-  - Full project verified production-ready for immediate Render live deployment.
+  - **End-to-End Production Verification (All 7 Live Checks Passed 100%)**:
+    1. Health Endpoint: `HTTP 200` (`status: healthy`, `database: connected` to Supabase PostgreSQL 17 w/ `pgvector`).
+    2. User Registration & Auth: `HTTP 201` and `HTTP 200` JWT token issuance.
+    3. User Profile Endpoint (`/api/auth/me`): `HTTP 200` valid token resolution.
+    4. Real CSV Upload & Persistence: `HTTP 200` ingested 26 rows ($1,644.50 across 5 cloud services).
+    5. Dataset History: `HTTP 200` returned user upload history with cascade isolation.
+    6. Statistical Anomaly Detection: `HTTP 200` accurately flagged 3 cost spikes (EC2 +270.8%, S3 +270.1%, BigQuery +216.4%).
+    7. Next.js Frontend Serving: `HTTP 200` React Dashboard delivered directly from root `/`.
 
 ---
 

@@ -349,6 +349,7 @@ Available Endpoints:
 - [x] **Step 17**: GitHub Actions CI/CD Pipeline.
 - [x] **Step 18**: Deploy on Strictly Free Hosting (Unified Single-Service Setup Ready).
 - [x] **Step 19**: Production Hardening & Portfolio Readiness (CORS Credential Guard, Streamed OOM Protection, Schema Truncation Defense, 38/38 Passed Tests).
+- [x] **Step 20**: Resume & Portfolio Readiness (Architecture Diagram, ATS Resume Profile, Interview Guide, Live Demo Script).
 
 ---
 
@@ -370,7 +371,16 @@ Available Endpoints:
 
 ---
 
-## 17. Security Disclosures & Grounding Principles
+## 17. Step 20 Completed: Resume & Portfolio Readiness
+- **Created Documentation Artifacts**:
+  1. [`docs/architecture.md`](file:///Users/akshitgupta/Desktop/resume%20project/cloudcost-ai/docs/architecture.md): Complete Mermaid diagram and component inventory showing the unified monolith, database models, vector search, Celery worker queue, WebSockets, and fallback mechanisms.
+  2. [`docs/resume-project.md`](file:///Users/akshitgupta/Desktop/resume%20project/cloudcost-ai/docs/resume-project.md): ATS-friendly, technically verified resume bullet point options, technology stack, and real engineering challenges solved (no fake metrics).
+  3. [`docs/interview-guide.md`](file:///Users/akshitgupta/Desktop/resume%20project/cloudcost-ai/docs/interview-guide.md): Comprehensive, beginner-friendly technical Q&A covering the exact code implementation, data isolation, Z-score math, pgvector HNSW search, Celery eager fallback, and security guards.
+  4. [`docs/demo-script.md`](file:///Users/akshitgupta/Desktop/resume%20project/cloudcost-ai/docs/demo-script.md): A step-by-step 3-to-5 minute demo walkthrough plan with sample CSV files, talking points, and specific edge cases to avoid.
+
+---
+
+## 18. Security Disclosures & Grounding Principles
 - **No Scraped Bloat**: Controlled documentation only from official cloud provider documentation.
 - **Untrusted Documentation Protection**: Retrieved text is passed as reference knowledge; model is instructed never to execute instructions embedded inside documents.
 - **Zero Hallucination of Architecture**: Model is forbidden from claiming documentation proves user's actual infrastructure state.

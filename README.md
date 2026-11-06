@@ -90,6 +90,17 @@ AI-powered Cloud Cost Analysis and Optimization Platform with RAG Documentation 
 - **Phase 17: GitHub Actions CI/CD Pipeline** *(Completed ✅)*
 - **Phase 18: Production Cloud Deployment & Monitoring (Render + Supabase $0)** *(Completed ✅)*
 - **Phase 19: Production Hardening & Portfolio Readiness** *(Completed ✅)*
+- **Phase 20: Resume & Portfolio Readiness (Docs, Guides, Architecture)** *(Completed ✅)*
+
+---
+
+## 📚 Portfolio, Resume & Interview Documentation
+Detailed engineering documentation created for technical recruiters, engineering managers, and technical interviews:
+
+* 🏛 **[System Architecture & Design (`docs/architecture.md`)](docs/architecture.md)**: Full Mermaid diagram, component inventory, data flow schemas, and fallback architectures.
+* 📄 **[ATS Resume Content & Challenges (`docs/resume-project.md`)](docs/resume-project.md)**: Action-verb resume bullet points, tech stack summary, and real engineering challenges solved.
+* 💡 **[Engineering Interview Deep-Dive (`docs/interview-guide.md`)](docs/interview-guide.md)**: Technical Q&A on PostgreSQL ACID transactions, Z-score math, pgvector HNSW indexing, Celery eager fallback, and CORS security.
+* 🎬 **[Live Demo Walkthrough Script (`docs/demo-script.md`)](docs/demo-script.md)**: A 3–5 minute step-by-step presentation script with sample CSV files and talking points.
 
 ---
 
